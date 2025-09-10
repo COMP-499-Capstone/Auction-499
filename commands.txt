@@ -1,0 +1,4 @@
+commands: cd frontend, npm run dev, o 
+do this to open in browser 
+
+remember to make your own branch and push to it then make a pull request, instead of pushing to dev.
