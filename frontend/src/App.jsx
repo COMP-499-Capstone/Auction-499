@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import AuthPage from "./views/authPage";
+import AuthPage from "./views/AuthPage";
 import './App.css'
 
 function App() {
