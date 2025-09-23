@@ -1,37 +1,61 @@
+/* src/index.css — light baseline for the whole app */
+
 :root {
+  --hp-bg: #f5f6f8;
+  --hp-text: #111827;
+
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  /* remove the dark scheme + dark background from the Vite template */
+  color-scheme: only light;
+  color: var(--hp-text);
+}
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  min-height: 100%;
 }
 
 body {
-  margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  font-family: inherit;
+  display: block; /* don't force flex on the entire app */
+  background: var(--hp-bg); /* light page background */
+  color: var(--hp-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
 }
 
-h1, h2, h3, h4, h5, h6 {
+#root {
+  min-height: 100vh;
+  background: var(--hp-bg); /* ensure gutters match the page */
+}
+
+/* Resets */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   margin: 0;
 }
-
 a {
   text-decoration: none;
   color: inherit;
 }
-
 button {
-  all: unset; /* remove default button styles */
+  all: unset;
   cursor: pointer;
+}
+* {
+  box-sizing: border-box;
 }
