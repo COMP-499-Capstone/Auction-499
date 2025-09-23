@@ -1,0 +1,36 @@
+/* HomePage.css */
+
+.profile-icon {
+    position: absolute;     
+    top: 16px;                
+    right: 16px;              
+  
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;       
+    border: none;
+    background-color: #f3f4f6; 
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    z-index: 1000;            
+  }
+  
+  .profile-icon:hover {
+    background-color: #e5e7eb;
+    transform: scale(1.05);
+  }
+  
+  .profile-icon:active {
+    background-color: #d1d5db;
+    transform: scale(0.95);
+  }
+  
+  .User {
+    width: 65px;
+    height: 65px;
+    color: #374151;
+  }
