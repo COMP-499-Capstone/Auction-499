@@ -4,6 +4,7 @@ import supabase from "../lib/supabaseClient";
 import {fetchFeaturedAuctions} from "../controllers/homeController";
 import "../styles/HomePage.css";
 import MockAuctionCard from "./MockAuctionCard";
+import { fetchUsername } from "../controllers/homeController";
 
 export default function HomePage() {
   const nav = useNavigate();
@@ -17,6 +18,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [auctions, setAuctions] = useState([]);
   const [error, setError] = useState("");
+  const [username, setUsername] = useState(null);
 
   // user menu state
   const [session, setSession] = useState(null);
@@ -68,6 +70,15 @@ export default function HomePage() {
     };
   }, []);
 
+  //checks if user is signed in and updates name accordingly
+  useEffect(() => {
+    if(session?.user.id) {
+      fetchUsername(session.user.id).then(setUsername);
+    } else {
+      setUsername(null);
+    }
+  }, [session?.user?.id]);
+
   // close user menu on outside click or Esc
   useEffect(() => {
     const onDocClick = (e) => {
@@ -106,7 +117,7 @@ export default function HomePage() {
   const goAccount = () => {
     if (!session?.user?.id) return;
     setUserMenuOpen(false);
-    nav(`/account/${session.user.id}`);
+    nav(`/profile/${session.user.id}`);
   };
   const doSignOut = async () => {
     await supabase.auth.signOut();
@@ -116,6 +127,9 @@ export default function HomePage() {
   return (
     <div className="home-shell">
       <div className="home-page">
+      <div className="username">
+        <p>{username ? `Signed in as: ${username}` : "Not signed in"}</p>
+      </div>
         <h1 className="hp-title">Auction</h1>
 
         <header className="hp-topbar">

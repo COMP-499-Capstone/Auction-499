@@ -70,3 +70,17 @@ export async function fetchFeaturedAuctions(opts = {}) {
     endsAt: r.ends_at ? new Date(r.ends_at).getTime() : Date.now(),
   }));
 }
+
+export async function fetchUsername(userId) {
+  const { data, error } = await supabase
+  .from("profiles")
+  .select("username")
+  .eq("id", userId)
+  .single();
+
+  if(error) {
+    console.error(error);
+    return null; 
+  }
+  return data?.username ?? null;
+}
