@@ -18,6 +18,7 @@ export default function App() {
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/account/:id" element={<AuthPage />} />
+        <Route path="/profile/:id" element={<Profile />} />
         <Route path="/homepage/:id" element={<Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

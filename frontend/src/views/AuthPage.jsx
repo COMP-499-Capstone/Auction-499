@@ -26,7 +26,7 @@ export default function AuthPage() {
       setErrorMsg(error.message);
     } else {
       const userId = data.user.id;
-      navigate(`/HomePage/${userId}`);
+      navigate(`/homepage/${userId}`);
     }
   };
 
