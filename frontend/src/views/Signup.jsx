@@ -28,7 +28,7 @@ export default function Signup() {
             const UserId = data.user.id;
             SignUpInfo(UserId, formData.username, formData.role);
             setErrorMsg('profile successfully created');
-            navigate(`/HomePage/${UserId}`);
+            navigate(`/homepage/${UserId}`);
         }
     };
 

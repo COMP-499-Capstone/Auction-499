@@ -7,7 +7,8 @@ import {
 import HomePage from "./views/HomePage";
 import AuthPage from "./views/AuthPage";
 import Signup from "./views/Signup";
-import "./App.css";
+import Profile from "./views/Profile";
+import './App.css'
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/account/:id" element={<AuthPage />} />
+        <Route path="/profile/:id" element={<Profile />} />
         <Route path="/homepage/:id" element={<Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

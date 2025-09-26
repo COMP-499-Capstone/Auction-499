@@ -25,6 +25,7 @@ body {
 }
 
 .home-shell {
+  position: relative;
   background: var(--hp-bg);
   min-height: 100vh;
 }
@@ -391,6 +392,14 @@ body {
 }
 .skeleton-line.w-80 {
   width: 80%;
+}
+
+.username {
+  position: absolute;
+  top: 10px;       /* distance from top */
+  left: 10px;      /* distance from left */
+  font-weight: bold;
+  font-size: 16px;
 }
 
 @keyframes shimmer {
