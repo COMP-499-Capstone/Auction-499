@@ -1,21 +1,23 @@
 /* Profile.css */
-
 .profile-header {
   display: flex;
-  align-items: flex-start;
-  gap: 24px;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 1px;
   padding: 20px;
   background: #f9fafb;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-  max-width: 700px;
+  width: 100%;
+  max-width: none;
   margin: 0 auto;
 }
 
 .profile-pic {
   position: relative;
   display: flex;
-  flex-direction: column;
+  flex-direction: center;
   align-items: center;
   gap: 8px;
 }
@@ -24,8 +26,8 @@
 .profile-pic svg {
   border-radius: 50%;
   object-fit: cover;
-  width: 100px;
-  height: 100px;
+  width: 130px;
+  height: 130px;
   border: 2px solid #e5e7eb;
 }
 
@@ -38,25 +40,36 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  flex: 1;
+  width: 100%;
+  max-width: 200px;
 }
 
 .profile-info input[type="text"] {
-  padding: 8px 12px;
-  font-size: 16px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
+  padding: 6px 0;
+  font-size: 17px;
+  text-align: center;
+  border: none;
+  border-bottom: 2px solid #d1d5db;
   outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.2s ease;
 }
 
 .profile-info input[type="text"]:focus {
   border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  box-shadow: none;
+}
+
+.profile-info input[type="text"]:disabled {
+  border: none; 
+  color: #374151; 
+  text-align: center;             
+  background: transparent;
+  cursor: default;
 }
 
 .profile-info button {
   padding: 8px 16px;
+  align-self: center;
   font-size: 16px;
   font-weight: 600;
   color: #fff;
@@ -65,6 +78,21 @@
   border-radius: 8px;
   cursor: pointer;
   transition: background-color 0.2s ease;
+}
+
+.profile-field {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.profile-field label {
+  font-weight: 700;
+  text-decoration: underline;
+  width: 100px; /* keeps labels aligned */
+  text-align: center;
+  color: #374151;
 }
 
 .profile-info button:hover:not(:disabled) {
@@ -76,9 +104,35 @@
   cursor: not-allowed;
 }
 
+.profile-shell {
+  position: relative;
+  background: var(--hp-bg);
+  min-height: 100vh;
+}
+
+.profile-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px 16px 96px;
+  color: var(--hp-text);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 18px;
+}
+@media (max-width: 640px) {
+  .profile-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+}
+
 /* Responsive */
 @media (max-width: 600px) {
   .profile-header {
+    width: 100%;
     flex-direction: column;
     align-items: center;
   }
