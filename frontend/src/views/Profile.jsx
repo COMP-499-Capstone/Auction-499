@@ -5,7 +5,9 @@ import { useParams } from "react-router-dom";
 import heic2any from "heic2any";
 import { UserCircle, Grid3x3, CircleDollarSign, Gavel } from "lucide-react";
 import ProfileAuctionCard from "./ProfileAuctionCard";
-import { getProfileById, updateProfile, uploadAvatar, getAuctionInfo } from "../controllers/profileController";
+import TransactionsTable from "./TransactionsTable";
+import BidAuctionCard from "./BidAuctionCard";
+import { getProfileById, updateProfile, uploadAvatar, getAuctionInfo, getBidPostInfo, setStripeId } from "../controllers/profileController";
 import  ToggleGroup from "./ToggleGroup";
 import "../styles/Profile.css";
 
@@ -14,10 +16,12 @@ export default function Profile() {
         username:"",
         role: "",
         avatar_url: "",
+        stripe_account_id: "",
     });
     const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(false);
     const [auctionInfo, setAuctionInfo] = useState([]);
+    const [bidPosts, setBidPosts] = useState([]);
     const [view, setView] = useState("posts");
     const { id } = useParams();
     const navigate = useNavigate();
@@ -36,6 +40,7 @@ export default function Profile() {
                     username: data.username ?? "",
                     role: data.role ?? "",
                     avatar_url: data.avatar_url ?? "",
+                    stripe_account_id: data.stripe_account_id ?? "",
                 });
             }
         })
@@ -46,6 +51,34 @@ export default function Profile() {
             isMounted = false;
         };
     }, [id]);
+
+    // creating stripe account used for transactions tab
+    useEffect(() => {
+        const createStripeAccount = async () => {
+            try {
+            if (profile.stripe_account_id) return;
+
+            const user = await supabase.auth.getUser();
+            console.log("email:", user.data.user.email);
+
+            const res = await fetch("http://localhost:3000/stripe/create-connected-account", {
+                method: "POST",
+                headers:{ "Content-Type": "application/json" },
+                body: JSON.stringify({ email: user.data.user.email })
+            });
+
+            const data = await res.json();
+
+            if (data.accountId) {
+                setStripeId(data.accountId, id);
+            }
+        } catch (error) {
+            console.error("Error creating Stripe account:", error.message);
+        }
+        };
+
+        createStripeAccount();
+    }, [profile]);
 
     /* useEffect for setting auction info, doesnt need interval 
     sell button is on homepage once landing back here it gets re rendered */
@@ -60,6 +93,20 @@ export default function Profile() {
        };
 
        if (id) fetchAuction();
+    }, [id]);
+
+    // used for bids section, no interval assuming you need to go to homepage to bid
+    useEffect(() => {
+        const bidAuction = async () => {
+            try {
+                const data = await getBidPostInfo(id);
+                setBidPosts(data);
+            } catch (err) {
+                console.error("failed to get posts for bids:", err.message);
+            }
+        };
+
+        if (id) bidAuction();
     }, [id]);
 
     // handlers for updates
@@ -182,6 +229,7 @@ export default function Profile() {
                 <ProfileAuctionCard
                 key={data.id}
                 auction={data}
+                profileId={id}
                 onClick={() => navigate(`/auction/${data.id}`)}
                 />
             ))}
@@ -189,14 +237,21 @@ export default function Profile() {
         )}
 
         {view === "transactions" && (
-        <div className="placeholder">
-            <p>💵 transactions will show here </p>
-        </div>
+            <TransactionsTable
+            profileId={id}
+            />
         )}
 
         {view === "bids" && (
-        <div className="placeholder">
-            <p>⚖️ bids on other auctions will show here</p>
+        <div className="profile-grid">
+            {bidPosts.map((data) => (
+                <BidAuctionCard
+                key={data.id}
+                auction={data}
+                profileId={id}
+                onClick={() => navigate(`/auction/${data.id}`)}
+                />
+            ))}
         </div>
         )}
         </div>

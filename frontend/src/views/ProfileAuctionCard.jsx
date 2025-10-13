@@ -1,16 +1,18 @@
 import React from "react";
 import "../styles/HomePage.css";
 import { useState, useEffect } from "react";
-import { getCurrentBidWithUser, getThumbnailUrl, getBidder } from "../controllers/profileController";
+import { getCurrentBidWithUser, getThumbnailUrl, getBidder, sellAuction, getStatus, createTransaction } from "../controllers/profileController";
 import supabase from "../lib/supabaseClient";
 
-export default function ProfileAuctionCard({auction, onClick}) {
+export default function ProfileAuctionCard({auction, profileId, onClick}) {
   const endsSoon =
     auction.end_time && auction.end_time - Date.now() <= 60 * 60 * 1000;
 
     const [currentBid, setCurrentBid] = useState("");
     const [bidderUsername, setBidderUsername] = useState("");
+    const [bidderId, setBidderId] = useState("");
     const [thumbnailUrl, setThumbnailUrl] = useState("");
+    const [status, setStatus] = useState("");
 
     // this loads then listens for more
     useEffect(() => {
@@ -24,6 +26,7 @@ export default function ProfileAuctionCard({auction, onClick}) {
               currentHighest = Bid.amount;
               setCurrentBid(Bid.amount);
               setBidderUsername(Bid.username);
+              setBidderId(Bid.id);
             }
           } catch (err) {
             console.error("Failed to fetch inital bid and user:", err.message);
@@ -58,6 +61,20 @@ export default function ProfileAuctionCard({auction, onClick}) {
         };
     }, [auction.id]);
 
+    // set status initially 
+    useEffect(() => {
+      const initialStatus = async () => {
+        try {
+          const status = await getStatus(auction.id);
+          setStatus(status);
+        } catch (error) {
+          console.error("failed to get initial status:", error.message);
+        }
+      };
+
+      if (auction.id) initialStatus();
+    }, [auction.id]);
+
     // sets thumbail for auction post
     useEffect(() => {
         const getThumbnail = async () => {
@@ -73,6 +90,23 @@ export default function ProfileAuctionCard({auction, onClick}) {
     console.log("url:", thumbnailUrl);
     }, [auction.id]);
 
+    const handleSell = async () => {
+      // changes status
+      try {
+        await sellAuction(auction.id);
+        setStatus("ended");
+      } catch (err) {
+        console.error("Failed to sell Item", err.message);
+      }
+
+      // makes transaction payment so it shows up in transactions section
+      try {
+        await createTransaction(auction.id, bidderId, profileId, currentBid);
+      } catch (err) {
+        console.error("Failed to create transaction:", err.message);
+      }
+    }
+ 
   return (
     <article
       className="hp-card"
@@ -112,8 +146,16 @@ export default function ProfileAuctionCard({auction, onClick}) {
           <span className={`hp-time ${endsSoon ? "hp-soon" : ""}`}>
             {formatTimeLeft(auction.endsAt)}
           </span>
-          <span className="hp-meta">Status: {auction.status}</span>
+          <span className="hp-meta">Status: {status}</span>
         </div>
+        <button onClick={(e) => {
+          e.stopPropagation();
+          handleSell();
+        }}
+        disabled={status === "ended"}
+        >
+          {status === "ended" ? "Sold" : "Sell"}
+        </button>
       </div>
     </article>
   );

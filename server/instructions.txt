@@ -1,2 +1,5 @@
 this folder will be for server side operations using node and express like stripe and api calls to twitch or other api's
 since database calls can be done through client in frontend
+
+
+cd to server and run npm start to start backend and then cd frontend on another terminal to npm run dev
