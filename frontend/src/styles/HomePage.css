@@ -428,3 +428,24 @@ body {
     animation: none;
   }
 }
+
+.hp-card-body button {
+  padding: 8px 16px;
+  align-self: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  background-color: #08ce08;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.hp-card-body button:disabled {
+  cursor: not-allowed;
+  background-color: #ccc;
+  color: #666;
+  opacity: 0.8;
+  border: 1px solid #aaa;
+}
