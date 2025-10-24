@@ -1,86 +1,117 @@
-// Home page data access (Supabase)
-// Uses supabase client at: /src/lib/supabaseClient.js
-
+// src/controllers/homeController.js
 import supabase from "../lib/supabaseClient";
 
 /**
- * Fetch featured auctions with optional filters.
- * All filters are applied server-side (no placeholders).
- *
- * @param {Object} opts
- * @param {string} [opts.query]       - free text: title/location/seller_username
- * @param {"any"|"new"|"used"} [opts.condition]
- * @param {"endingSoon"|"highest"|"lowest"} [opts.sort]
- * @param {number} [opts.limit]       - default 24
+ * Fetch auctions for the home page, plus first image, seller username,
+ * and watch counts.
  */
 export async function fetchFeaturedAuctions(opts = {}) {
-  const {query = "", condition = "any", sort = "endingSoon", limit = 24} = opts;
+  const { query = "", sort = "endingSoon", limit = 24 } = opts;
 
-  let q = supabase
+  // 1) Base auctions (active or upcoming, not already ended)
+  let aq = supabase
     .from("auctions")
     .select(
-      `
-      id,
-      title,
-      condition,
-      current_bid,
-      watchers,
-      location,
-      seller_username,
-      thumbnail_url,
-      ends_at
-    `
+      "id, title, description, auction_type, starting_price, reserve_price, start_time, end_time, status, seller_id, location"
     )
-    .eq("is_featured", true)
+    .in("status", ["active", "upcoming"])
+    .gte("end_time", new Date().toISOString())
     .limit(limit);
 
-  // server-side filters
-  if (query && query.trim()) {
+  // Basic search (title / description / location)
+  if (query.trim()) {
     const term = `%${query.trim()}%`;
-    q = q.or(
-      `title.ilike.${term},location.ilike.${term},seller_username.ilike.${term}`
-    );
+    aq = aq.or(`title.ilike.${term},description.ilike.${term},location.ilike.${term}`);
   }
 
-  if (condition !== "any") {
-    q = q.eq("condition", condition);
-  }
+  // Sorting
+  if (sort === "endingSoon") aq = aq.order("end_time", { ascending: true });
+  if (sort === "highest") aq = aq.order("starting_price", { ascending: false });
+  if (sort === "lowest") aq = aq.order("starting_price", { ascending: true });
 
-  if (sort === "endingSoon") q = q.order("ends_at", {ascending: true});
-  if (sort === "highest") q = q.order("current_bid", {ascending: false});
-  if (sort === "lowest") q = q.order("current_bid", {ascending: true});
-
-  const {data, error} = await q;
-
-  if (error) {
-    console.error("fetchFeaturedAuctions error:", error.message);
+  const { data: auctions, error: aErr } = await aq;
+  if (aErr) {
+    console.error("fetchFeaturedAuctions (auctions) ->", aErr.message);
     return [];
   }
+  if (!auctions?.length) return [];
 
-  // map snake_case -> camelCase for the UI
-  return (data || []).map((r) => ({
+  // Collect IDs to enrich
+  const auctionIds = auctions.map((a) => a.id);
+  const sellerIds = [...new Set(auctions.map((a) => a.seller_id))];
+
+  // 2) Thumbnails (first image per auction)
+  const { data: imgs, error: iErr } = await supabase
+    .from("images")
+    .select("auction_id, url")
+    .in("auction_id", auctionIds);
+
+  if (iErr) console.error("fetchFeaturedAuctions (images) ->", iErr.message);
+
+  const firstImageByAuction = new Map();
+  (imgs || []).forEach((row) => {
+    if (!firstImageByAuction.has(row.auction_id)) {
+      firstImageByAuction.set(row.auction_id, row.url || "");
+    }
+  });
+
+  // 3) Seller usernames
+  const { data: profs, error: pErr } = await supabase
+    .from("profiles")
+    .select("id, username")
+    .in("id", sellerIds);
+
+  if (pErr) console.error("fetchFeaturedAuctions (profiles) ->", pErr.message);
+
+  const usernameById = new Map((profs || []).map((p) => [p.id, p.username || "Unknown"]));
+
+  // 4) Watch counts (aggregate in JS)
+  let watchCountByAuction = new Map();
+  try {
+    const { data: watchRows, error: wErr } = await supabase
+      .from("watches")
+      .select("auction_id")
+      .in("auction_id", auctionIds);
+
+    if (wErr) {
+      console.error("fetchFeaturedAuctions (watches) ->", wErr.message);
+    } else {
+      watchCountByAuction = watchRows.reduce((map, r) => {
+        map.set(r.auction_id, (map.get(r.auction_id) || 0) + 1);
+        return map;
+      }, new Map());
+    }
+  } catch (e) {
+    console.error("fetchFeaturedAuctions (watches aggregate) ->", e.message);
+  }
+
+  // 5) Final shape for the UI
+  return auctions.map((r) => ({
     id: r.id,
     title: r.title,
-    condition: r.condition, // "new" | "used"
-    currentBid: r.current_bid ?? 0,
-    watchers: r.watchers ?? 0,
+    auctionType: r.auction_type ?? "standard",
+    currentBid: Number(r.starting_price ?? 0),
+    watchers: watchCountByAuction.get(r.id) || 0, // ✅ real count now
     location: r.location ?? "",
-    seller: r.seller_username ?? "",
-    thumbnail: r.thumbnail_url ?? "",
-    endsAt: r.ends_at ? new Date(r.ends_at).getTime() : Date.now(),
+    seller: usernameById.get(r.seller_id) ?? "Unknown",
+    thumbnail: firstImageByAuction.get(r.id) || "",
+    endsAt: r.end_time ? new Date(r.end_time).getTime() : Date.now(),
+    reserve_price: r.reserve_price ?? 0,
+    starting_price: r.starting_price ?? 0,
   }));
 }
 
+/** Get a username for the session banner / menus. */
 export async function fetchUsername(userId) {
   const { data, error } = await supabase
-  .from("profiles")
-  .select("username")
-  .eq("id", userId)
-  .single();
+    .from("profiles")
+    .select("username")
+    .eq("id", userId)
+    .single();
 
-  if(error) {
-    console.error(error);
-    return null; 
+  if (error) {
+    console.error("fetchUsername ->", error.message);
+    return null;
   }
   return data?.username ?? null;
 }
