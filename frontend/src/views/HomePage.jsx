@@ -1,18 +1,24 @@
-import React, {useEffect, useMemo, useRef, useState} from "react";
-import {useNavigate} from "react-router-dom";
+// src/views/HomePage.jsx
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import supabase from "../lib/supabaseClient";
-import {fetchFeaturedAuctions} from "../controllers/homeController";
+import { fetchFeaturedAuctions, fetchUsername } from "../controllers/homeController";
+import BidAuctionCard from "./BidAuctionCard";
+import { zipToCoords } from "../utils/zipLookup";
+import { getBrowserLocation, distanceMiles } from "../utils/geo";
 import "../styles/HomePage.css";
-import MockAuctionCard from "./MockAuctionCard";
-import { fetchUsername } from "../controllers/homeController";
 
 export default function HomePage() {
   const nav = useNavigate();
 
   // filters
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState("any");
-  const [sort, setSort] = useState("endingSoon");
+  const [filter, setFilter] = useState("any"); // any | new | used | nearby
+  const [sort, setSort] = useState("endingSoon"); // endingSoon | highest | lowest
+  const [radius, setRadius] = useState(50); // miles for "nearby"
+
+  // geolocation
+  const [userLoc, setUserLoc] = useState(null); // {lat,lng}
 
   // data state
   const [loading, setLoading] = useState(true);
@@ -20,11 +26,33 @@ export default function HomePage() {
   const [error, setError] = useState("");
   const [username, setUsername] = useState(null);
 
+  // cache for ZIP -> {lat,lng}
+  const [zipCoordCache, setZipCoordCache] = useState({}); // { "93060": {lat, lng} }
+
   // user menu state
   const [session, setSession] = useState(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userBtnRef = useRef(null);
   const userMenuRef = useRef(null);
+
+  // Ensure profile exists so username lookups succeed
+  async function ensureProfile(user) {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (error) return;
+    if (!data) {
+      const fallback =
+        user.user_metadata?.username ||
+        user.email?.split("@")[0] ||
+        `user_${user.id.slice(0, 6)}`;
+      await supabase
+        .from("profiles")
+        .insert([{ id: user.id, username: fallback, role: "user" }]);
+    }
+  }
 
   // fetch auctions when filters change
   useEffect(() => {
@@ -33,11 +61,7 @@ export default function HomePage() {
       try {
         setLoading(true);
         setError("");
-        const rows = await fetchFeaturedAuctions({
-          query,
-          condition: filter,
-          sort,
-        });
+        const rows = await fetchFeaturedAuctions({ query, condition: filter, sort });
         if (!alive) return;
         setAuctions(rows);
       } catch {
@@ -52,15 +76,72 @@ export default function HomePage() {
     };
   }, [query, filter, sort]);
 
-  // load session + subscribe to auth changes so menu reflects current state
+  // If user chooses "Near me", ask for location (once).
+  useEffect(() => {
+    let cancelled = false;
+    if (filter !== "nearby" || userLoc) return;
+
+    (async () => {
+      try {
+        const loc = await getBrowserLocation();
+        if (!cancelled) setUserLoc(loc);
+      } catch (err) {
+        console.warn("Location permission denied or failed:", err?.message);
+        if (!cancelled) {
+          alert("We couldn’t access your location. Showing all items instead.");
+          setFilter("any");
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [filter, userLoc]);
+
+  // When "nearby" and auctions change, prefetch coords for any ZIPs we don't have yet.
+  useEffect(() => {
+    let cancelled = false;
+    if (filter !== "nearby") return;
+
+    (async () => {
+      const zips = new Set(
+        auctions
+          .map((a) => (a.location || "").toString().trim())
+          .filter((z) => /^\d{5}$/.test(z))
+      );
+
+      const missing = [...zips].filter((z) => !zipCoordCache[z]);
+      if (missing.length === 0) return;
+
+      const entries = await Promise.all(
+        missing.map(async (z) => [z, await zipToCoords(z)])
+      );
+
+      if (!cancelled) {
+        setZipCoordCache((prev) => {
+          const next = { ...prev };
+          for (const [z, coord] of entries) {
+            if (coord) next[z] = coord;
+          }
+          return next;
+        });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [filter, auctions, zipCoordCache]);
+
+  // load session + react to auth changes
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(({data}) => {
+    supabase.auth.getSession().then(({ data }) => {
       if (mounted) setSession(data?.session ?? null);
     });
 
-    const {data: sub} = supabase.auth.onAuthStateChange((_event, sess) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, sess) => {
       setSession(sess ?? null);
     });
 
@@ -70,13 +151,22 @@ export default function HomePage() {
     };
   }, []);
 
-  //checks if user is signed in and updates name accordingly
+  // when session changes, ensure profile exists and then fetch username
   useEffect(() => {
-    if(session?.user.id) {
-      fetchUsername(session.user.id).then(setUsername);
-    } else {
-      setUsername(null);
-    }
+    (async () => {
+      const uid = session?.user?.id;
+      if (!uid) {
+        setUsername(null);
+        return;
+      }
+      try {
+        await ensureProfile(session.user);
+        const name = await fetchUsername(uid);
+        setUsername(name || session.user.email?.split("@")[0] || "User");
+      } catch {
+        setUsername(session?.user?.email?.split("@")[0] || "User");
+      }
+    })();
   }, [session?.user?.id]);
 
   // close user menu on outside click or Esc
@@ -97,7 +187,31 @@ export default function HomePage() {
     };
   }, []);
 
-  const display = useMemo(() => auctions, [auctions]);
+  // Prepare display list. If "nearby", filter in-memory by ZIP distance using cached coords.
+  const display = useMemo(() => {
+    let list = auctions;
+
+    if (filter === "nearby" && userLoc) {
+      const filtered = [];
+      for (const a of auctions) {
+        const raw = (a.location || "").toString().trim();
+        if (!/^\d{5}$/.test(raw)) continue; // only ZIPs are filterable
+        const zipCoord = zipCoordCache[raw];
+        if (!zipCoord) continue; // coordinates not loaded yet
+        const d = distanceMiles(userLoc, zipCoord);
+        if (d <= radius) filtered.push({ ...a, _distance: d });
+      }
+      // Sort nearby list by distance, then by soonest ending (if available).
+      filtered.sort((x, y) => {
+        const d = (x._distance ?? 0) - (y._distance ?? 0);
+        if (d !== 0) return d;
+        return (x.endsAt ?? 0) - (y.endsAt ?? 0);
+      });
+      list = filtered;
+    }
+
+    return list;
+  }, [auctions, filter, userLoc, radius, zipCoordCache]);
 
   const clearFilters = () => {
     setQuery("");
@@ -126,17 +240,82 @@ export default function HomePage() {
 
   return (
     <div className="home-shell">
-      <div className="home-page">
-      <div className="username">
-        <p>{username ? `Signed in as: ${username}` : "Not signed in"}</p>
-      </div>
-        <h1 className="hp-title">Auction</h1>
+      <div className="home-page" style={{ paddingTop: 8 }}>
+        {/* Title */}
+        <h1
+          className="hp-title"
+          style={{
+            fontSize: 44,
+            fontWeight: 800,
+            textAlign: "center",
+            marginTop: 8,
+            marginBottom: 20,
+            letterSpacing: "-0.5px",
+            color: "#0f172a",
+          }}
+        >
+          Auction
+        </h1>
 
-        <header className="hp-topbar">
+        {/* Minimal welcome banner (no CTA buttons) */}
+        {session?.user && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-start",
+              gap: 14,
+              background: "linear-gradient(135deg, #ffffff, #f8fafc)",
+              borderRadius: 14,
+              padding: "14px 18px",
+              margin: "0 auto 20px",
+              boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
+              maxWidth: 700,
+              transition: "transform 0.2s ease, box-shadow 0.2s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "translateY(-2px)";
+              e.currentTarget.style.boxShadow = "0 10px 30px rgba(0,0,0,0.08)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.05)";
+            }}
+          >
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: "50%",
+                background: "#2563eb",
+                display: "grid",
+                placeItems: "center",
+                fontWeight: 700,
+                color: "#fff",
+                fontSize: 18,
+                flexShrink: 0,
+              }}
+              title="Profile"
+            >
+              {username ? String(username).slice(0, 1).toUpperCase() : "U"}
+            </div>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: "#111827" }}>
+                Welcome back, {username}
+              </div>
+              <div style={{ fontSize: 13, color: "#6b7280" }}>
+                Ready to bid or create a listing?
+              </div>
+            </div>
+          </div>
+        )}
+
+        <header className="hp-topbar" style={{ marginTop: 8 }}>
           <form
             className="hp-search-row"
             onSubmit={(e) => e.preventDefault()}
-            aria-label="Search auctions">
+            aria-label="Search auctions"
+          >
             <div className="hp-search-wrap">
               <input
                 className="hp-search-input"
@@ -151,7 +330,8 @@ export default function HomePage() {
                   type="button"
                   className="hp-clear-btn"
                   onClick={() => setQuery("")}
-                  aria-label="Clear">
+                  aria-label="Clear"
+                >
                   ×
                 </button>
               )}
@@ -162,9 +342,10 @@ export default function HomePage() {
               value={filter}
               onChange={setFilter}
               options={[
-                {value: "any", label: "Filter: Any"},
-                {value: "new", label: "New"},
-                {value: "used", label: "Used"},
+                { value: "any", label: "Filter: Any" },
+                { value: "new", label: "New" },
+                { value: "used", label: "Used" },
+                { value: "nearby", label: "Near me" }, // NEW
               ]}
             />
 
@@ -173,19 +354,39 @@ export default function HomePage() {
               value={sort}
               onChange={setSort}
               options={[
-                {value: "endingSoon", label: "Sort: Ending soon"},
-                {value: "highest", label: "Price: High → Low"},
-                {value: "lowest", label: "Price: Low → High"},
+                { value: "endingSoon", label: "Sort: Time left" }, // renamed
+                { value: "highest", label: "Price: High → Low" },
+                { value: "lowest", label: "Price: Low → High" },
               ]}
             />
 
-            <button
-              type="button"
-              className="hp-reset-btn"
-              onClick={clearFilters}>
+            <button type="button" className="hp-reset-btn" onClick={clearFilters}>
               Reset
             </button>
           </form>
+
+          {/* Radius control when "Near me" is active */}
+          {filter === "nearby" && (
+            <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
+              <label style={{ fontSize: 13, color: "#374151" }}>Radius:</label>
+              <input
+                type="range"
+                min={5}
+                max={200}
+                step={5}
+                value={radius}
+                onChange={(e) => setRadius(Number(e.target.value))}
+              />
+              <span style={{ fontSize: 13, color: "#111827", minWidth: 48 }}>
+                {radius} mi
+              </span>
+              {!userLoc && (
+                <span style={{ fontSize: 12, color: "#6b7280" }}>
+                  waiting for location…
+                </span>
+              )}
+            </div>
+          )}
 
           {/* user menu */}
           <div className="hp-user">
@@ -195,12 +396,9 @@ export default function HomePage() {
               onClick={() => setUserMenuOpen((o) => !o)}
               aria-haspopup="menu"
               aria-expanded={userMenuOpen}
-              title="Account">
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                aria-hidden="true">
+              title="Account"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
                 <circle cx="12" cy="8" r="4" fill="currentColor" />
                 <path
                   d="M4 20c0-4 4-6 8-6s8 2 8 6"
@@ -216,31 +414,19 @@ export default function HomePage() {
               <div className="hp-user-menu" role="menu" ref={userMenuRef}>
                 {session ? (
                   <>
-                    <button
-                      className="hp-user-item"
-                      role="menuitem"
-                      onClick={goAccount}>
+                    <button className="hp-user-item" role="menuitem" onClick={goAccount}>
                       My account
                     </button>
-                    <button
-                      className="hp-user-item danger"
-                      role="menuitem"
-                      onClick={doSignOut}>
+                    <button className="hp-user-item danger" role="menuitem" onClick={doSignOut}>
                       Sign out
                     </button>
                   </>
                 ) : (
                   <>
-                    <button
-                      className="hp-user-item"
-                      role="menuitem"
-                      onClick={goSignIn}>
+                    <button className="hp-user-item" role="menuitem" onClick={goSignIn}>
                       Sign in
                     </button>
-                    <button
-                      className="hp-user-item primary"
-                      role="menuitem"
-                      onClick={goSignUp}>
+                    <button className="hp-user-item primary" role="menuitem" onClick={goSignUp}>
                       Create account
                     </button>
                   </>
@@ -251,11 +437,11 @@ export default function HomePage() {
         </header>
 
         <section className="hp-section">
-          <h2 className="hp-h2">Featured</h2>
+          <h2 className="hp-h2" style={{ marginTop: 12 }}>Featured</h2>
 
           {loading && (
             <div className="hp-grid">
-              {Array.from({length: 6}).map((_, i) => (
+              {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className="hp-card hp-skeleton">
                   <div className="hp-thumb-wrap skeleton-box" />
                   <div className="hp-card-body">
@@ -272,38 +458,50 @@ export default function HomePage() {
           {error && <div className="hp-error">{error}</div>}
 
           {!loading && !error && display.length === 0 && (
-            <div className="hp-info">No auctions match your filters.</div>
+            <div className="hp-info">
+              {filter === "nearby"
+                ? "No auctions within your selected radius."
+                : "No auctions match your filters."}
+            </div>
           )}
 
           {!loading && !error && display.length > 0 && (
             <div className="hp-grid">
-              {display.map((a) => (
-                <AuctionCard
-                  key={a.id}
-                  auction={a}
-                  onClick={() => nav(`/auction/${a.id}`)}
-                />
-              ))}
+              {display.map((a) => {
+                // Adapt data for BidAuctionCard
+                const adapted = {
+                  id: a.id,
+                  title: a.title,
+                  // BidAuctionCard fetches its own thumbnail & status
+                  starting_price: a.starting_price ?? a.currentBid ?? 0,
+                  reserve_price: a.reserve_price ?? 0,
+                  end_time: a.end_time
+                    ? a.end_time
+                    : a.endsAt
+                    ? new Date(a.endsAt).toISOString()
+                    : null,
+                  status: a.status ?? "active",
+                  location: a.location ?? "", // expected ZIP for nearby filter
+                };
+                return (
+                  <BidAuctionCard
+                    key={a.id}
+                    auction={adapted}
+                    profileId={session?.user?.id || null}
+                    onClick={() => nav(`/auction/${a.id}`)}
+                  />
+                );
+              })}
             </div>
           )}
-
-          {/* mock preview cards while designing */}
-          <div className="hp-grid">
-            {MOCK_AUCTIONS.map((a) => (
-              <MockAuctionCard
-                key={a.id}
-                auction={a}
-                onClick={() => nav(`/auction/${a.id}`)}
-              />
-            ))}
-          </div>
         </section>
 
         <button
           className="hp-fab"
           onClick={() => nav("/sell")}
           aria-label="Create auction"
-          title="Create auction">
+          title="Create auction"
+        >
           <span className="hp-fab-plus">+</span>
           <span className="hp-fab-label">Sell</span>
         </button>
@@ -312,55 +510,8 @@ export default function HomePage() {
   );
 }
 
-function AuctionCard({auction, onClick}) {
-  const timeLeft = formatTimeLeft(auction.endsAt);
-  const endsSoon =
-    auction.endsAt && auction.endsAt - Date.now() <= 60 * 60 * 1000;
-
-  return (
-    <article
-      className="hp-card"
-      role="button"
-      tabIndex={0}
-      onClick={onClick}
-      onKeyDown={(e) => (e.key === "Enter" ? onClick() : null)}
-      aria-label={`Auction ${auction.title}, current bid ${formatMoney(
-        auction.currentBid
-      )}`}>
-      <div className="hp-thumb-wrap">
-        <img
-          className="hp-thumb"
-          src={auction.thumbnail}
-          alt={`${auction.title} thumbnail`}
-        />
-      </div>
-
-      <div className="hp-card-body">
-        <h3 className="hp-card-title">{auction.title}</h3>
-
-        <div className="hp-row">
-          <span className="hp-pill">{auction.condition}</span>
-          <span className="hp-meta">{auction.location}</span>
-        </div>
-
-        <div className="hp-row">
-          <strong>{formatMoney(auction.currentBid)}</strong>
-          <span className="hp-meta">{auction.watchers} watching</span>
-        </div>
-
-        <div className="hp-row hp-foot">
-          <span className={`hp-time ${endsSoon ? "hp-soon" : ""}`}>
-            {timeLeft}
-          </span>
-          <span className="hp-meta">Seller: {auction.seller}</span>
-        </div>
-      </div>
-    </article>
-  );
-}
-
 /* Custom dropdown (Filter/Sort) */
-function Dropdown({label, value, onChange, options}) {
+function Dropdown({ label, value, onChange, options }) {
   const [open, setOpen] = useState(false);
   const [kbIndex, setKbIndex] = useState(-1);
   const ref = useRef(null);
@@ -377,10 +528,7 @@ function Dropdown({label, value, onChange, options}) {
   }, []);
 
   const onKeyDown = (e) => {
-    if (
-      !open &&
-      (e.key === "Enter" || e.key === " " || e.key === "ArrowDown")
-    ) {
+    if (!open && (e.key === "Enter" || e.key === " " || e.key === "ArrowDown")) {
       e.preventDefault();
       setOpen(true);
       setKbIndex(0);
@@ -417,7 +565,8 @@ function Dropdown({label, value, onChange, options}) {
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        onKeyDown={onKeyDown}>
+        onKeyDown={onKeyDown}
+      >
         {current}
         <svg className="hp-dd-caret" viewBox="0 0 24 24" aria-hidden="true">
           <polyline
@@ -443,7 +592,8 @@ function Dropdown({label, value, onChange, options}) {
               onClick={() => {
                 onChange(opt.value);
                 setOpen(false);
-              }}>
+              }}
+            >
               {opt.label}
             </div>
           ))}
@@ -453,12 +603,9 @@ function Dropdown({label, value, onChange, options}) {
   );
 }
 
-/* utilities */
+/* utilities (unused here but kept for parity with other views) */
 function formatMoney(n) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(n ?? 0);
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n ?? 0);
 }
 function formatTimeLeft(endsAtMs) {
   const ms = (endsAtMs ?? 0) - Date.now();
@@ -471,72 +618,3 @@ function formatTimeLeft(endsAtMs) {
   if (h > 0) return `${h}h ${m}m left`;
   return `${m}m left`;
 }
-
-const MOCK_AUCTIONS = [
-  {
-    id: "1",
-    title: "Vintage Lamp",
-    condition: "used",
-    currentBid: 85,
-    watchers: 12,
-    location: "Austin, TX",
-    seller: "alice",
-    thumbnail: "https://picsum.photos/seed/vintage-lamp/400/300",
-    endsAt: Date.now() + 1000 * 60 * 45,
-  },
-  {
-    id: "2",
-    title: "Signed Poster",
-    condition: "new",
-    currentBid: 220,
-    watchers: 34,
-    location: "Brooklyn, NY",
-    seller: "bob",
-    thumbnail: "https://picsum.photos/seed/signed-poster/400/300",
-    endsAt: Date.now() + 1000 * 60 * 120,
-  },
-  {
-    id: "3",
-    title: "Retro Radio",
-    condition: "used",
-    currentBid: 60,
-    watchers: 8,
-    location: "Seattle, WA",
-    seller: "chris",
-    thumbnail: "https://picsum.photos/seed/retro-radio/400/300",
-    endsAt: Date.now() + 1000 * 60 * 240,
-  },
-  {
-    id: "4",
-    title: "Ceramic Vase",
-    condition: "new",
-    currentBid: 45,
-    watchers: 15,
-    location: "Miami, FL",
-    seller: "dan",
-    thumbnail: "https://picsum.photos/seed/ceramic-vase/400/300",
-    endsAt: Date.now() + 1000 * 60 * 360,
-  },
-  {
-    id: "5",
-    title: "Leather Jacket",
-    condition: "used",
-    currentBid: 150,
-    watchers: 29,
-    location: "Chicago, IL",
-    seller: "emily",
-    thumbnail: "https://picsum.photos/seed/leather-jacket/400/300",
-    endsAt: Date.now() + 1000 * 60 * 600,
-  },
-  {
-    id: "6",
-    title: "Antique Clock",
-    condition: "used",
-    currentBid: 310,
-    watchers: 45,
-    location: "Portland, OR",
-    seller: "frank",
-    thumbnail: "https://picsum.photos/seed/antique-clock/400/300",
-    endsAt: Date.now() + 1000 * 60 * 900,
-  },
-];
