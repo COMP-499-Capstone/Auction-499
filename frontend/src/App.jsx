@@ -9,6 +9,7 @@ import AuthPage from "./views/AuthPage";
 import Signup from "./views/Signup";
 import Profile from "./views/Profile";
 import SellPage from "./views/SellPage";
+import ListingPage from "./views/ListingPage";
 import './App.css'
 
 export default function App() {
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="/account/:id" element={<AuthPage />} />
         <Route path="/profile/:id" element={<Profile />} />
         <Route path="/sell" element={<SellPage />} />
+        <Route path="/auction/:id" element={<ListingPage />} />
         <Route path="/homepage/:id" element={<Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
