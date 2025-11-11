@@ -1,4 +1,5 @@
 /* src/index.css — light baseline for the whole app */
+@import "tailwindcss";
 
 :root {
   --hp-bg: #f5f6f8;

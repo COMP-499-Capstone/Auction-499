@@ -44,8 +44,9 @@ export default function SellPage() {
     setForm((f) => (f.end_time ? f : { ...f, end_time: sevenDaysFromNowLocal() }));
   }, []);
 
-  const [file, setFile] = useState(null);
-  const [filePreview, setFilePreview] = useState("");
+  // NEW: multiple image support
+  const [files, setFiles] = useState([]);    // File[]
+  const maxImages = 10;
   const [uploading, setUploading] = useState(false);
 
   const onChange = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
@@ -94,12 +95,27 @@ export default function SellPage() {
     }
   }
 
-  const onFileChange = (e) => {
-    const f = e.target.files?.[0] ?? null;
-    setFile(f);
-    setFilePreview(f ? URL.createObjectURL(f) : "");
-  };
+// Allow up to 10 images
+const onFileChange = (e) => {
+  const selected = Array.from(e.target.files ?? []);
+  if (!selected.length) return;
 
+  setFiles((prev) => {
+    const remainingSlots = maxImages - prev.length;
+    const toAdd = selected.slice(0, remainingSlots);
+    const next = [...prev, ...toAdd];
+
+    if (selected.length > remainingSlots) {
+      alert(`You can upload up to ${maxImages} images. Extra files were ignored.`);
+    }
+    return next;
+  });
+};
+
+//Remove image by index
+const removeFileAt = (index) => {
+  setFiles((prev) => prev.filter((_, i) => i !== index));
+};
   const onSubmit = async (e) => {
     e.preventDefault();
 
@@ -137,12 +153,18 @@ export default function SellPage() {
       // Ensure FK to profiles
       await ensureProfile(session.user);
 
-      // Prepare image
-      let finalImageUrl = null;
-      if (file) {
-        finalImageUrl = await uploadAuctionImage(session.user.id, file);
-      } else if (form.image_url.trim()) {
-        finalImageUrl = form.image_url.trim();
+      // Prepare images
+      const uploadedUrls = [];
+
+      // Upload selected files to storage
+      for (const f of files) {
+        const url = await uploadAuctionImage(session.user.id, f);
+        if (url) uploadedUrls.push(url);
+      }
+
+      // Optional manual URL (treat as one more image)
+      if (form.image_url.trim()&& uploadedUrls.length < maxImages) {
+        uploadedUrls.push(form.image_url.trim());
       }
 
       // Store location exactly as entered (ZIP or "City, ST")
@@ -181,10 +203,15 @@ export default function SellPage() {
       if (aErr) throw aErr;
 
       // Optional image row
-      if (finalImageUrl) {
+      if (uploadedUrls.length) {
         const { error: iErr } = await supabase
           .from("images")
-          .insert([{ auction_id: auction.id, url: finalImageUrl }]);
+          .insert(
+            uploadedUrls.map((url) => ({
+              auction_id: auction.id,
+              url,
+            }))
+          );
         if (iErr) throw iErr;
       }
 
@@ -339,30 +366,71 @@ export default function SellPage() {
               id="auction-file"
               type="file"
               accept="image/*"
+              multiple
               style={{ display: "none" }}
               onChange={onFileChange}
             />
-            {file && (
+            {files.length > 0 && (
               <span style={{ fontSize: 13, color: "#374151" }}>
-                {file.name} {uploading ? "• uploading…" : ""}
+                {files.length}/ {maxImages} images selected {uploading ? "• uploading…" : ""}
               </span>
             )}
           </div>
 
           {/* Preview */}
-          {filePreview && (
-            <div style={{ justifySelf: "end" }}>
-              <img
-                src={filePreview}
-                alt="Preview"
-                style={{
-                  width: 120,
-                  height: 80,
-                  objectFit: "cover",
-                  borderRadius: 10,
-                  border: "1px solid #e5e7eb",
-                }}
-              />
+          {files.length > 0 && (
+            <div
+              style={{
+                justifySelf: "end",
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 8,
+                maxWidth: 320,
+              }}
+            >
+              {files.map((f, i) => (
+                <div
+                  key={i}
+                  style={{
+                    position: "relative",
+                    width: 90,
+                    height: 90,
+                    borderRadius: 10,
+                    overflow: "hidden",
+                    border: "1px solid #e5e7eb",
+                  }}
+                >
+                  <img
+                    src={URL.createObjectURL(f)}
+                    alt={`Preview ${i + 1}`}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeFileAt(i)}
+                    style={{
+                      position: "absolute",
+                      top: 2,
+                      right: 2,
+                      width: 20,
+                      height: 20,
+                      borderRadius: "50%",
+                      border: "none",
+                      background: "rgba(0,0,0,0.7)",
+                      color: "#fff",
+                      fontSize: 12,
+                      cursor: "pointer",
+                    }}
+                    aria-label={`Remove image ${i + 1}`}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </div>
