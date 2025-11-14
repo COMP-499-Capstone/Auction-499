@@ -14,6 +14,7 @@ export default function TransactionsTable({profileId}) {
     const [outgoingPayments, setOutgoingPayments] = useState([]);
     const [checkoutId, setCheckoutId] = useState([]);
     const { id: paramId } = useParams();
+    const API_BASE ="https://api.auctionflow.it.com" ;
 
     //used to get all incoming payments
     useEffect(() => {
@@ -54,7 +55,7 @@ export default function TransactionsTable({profileId}) {
             setCheckoutId(checkoutIds);
       
             if (checkoutIds.length > 0) {
-              const res = await fetch("http://localhost:3000/stripe/verify-payment", {
+              const res = await fetch(`${API_BASE}/stripe/verify-payment`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ checkoutIds }),
@@ -85,7 +86,7 @@ export default function TransactionsTable({profileId}) {
                 profileId: paramId,
               });
             //sends necessary info to backend to talk to stripe
-            const res = await fetch("http://localhost:3000/stripe/create-checkout-session", {
+            const res = await fetch(`${API_BASE}/stripe/create-checkout-session`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

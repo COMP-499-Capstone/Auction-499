@@ -10,6 +10,9 @@ import Signup from "./views/Signup";
 import Profile from "./views/Profile";
 import SellPage from "./views/SellPage";
 import ListingPage from "./views/ListingPage";
+import LiveLobby from "./views/LiveLobby";
+import HostLive from "./views/HostLive";
+import ViewerLive from "./views/ViewerLive";
 import './App.css'
 
 export default function App() {
@@ -25,6 +28,9 @@ export default function App() {
         <Route path="/auction/:id" element={<ListingPage />} />
         <Route path="/homepage/:id" element={<Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/live" element={<LiveLobby />} />
+        <Route path="/host/:roomId" element={<HostLive />} />
+        <Route path="/watch/:roomId" element={<ViewerLive />} />
       </Routes>
     </Router>
   );
