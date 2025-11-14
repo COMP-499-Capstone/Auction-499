@@ -1,0 +1,19 @@
+services:
+  livekit:
+    image: livekit/livekit-server:v1.9
+    container_name: livekit-livekit-1
+    command:
+      - --dev
+      - --bind
+      - 0.0.0.0:7880          # serve WS on 7880 inside the container
+      - --node-ip
+      - ${LIVEKIT_NODE_IP}    # advertise your host LAN IP to peers
+      - --udp-port
+      - "7882"
+      - --keys
+      - "${LIVEKIT_API_KEY}: ${LIVEKIT_API_SECRET}"
+    ports:
+      - "7880:7880/tcp"       # signaling (HTTP/WebSocket)
+      - "7881:7881/tcp"       # optional TCP ICE (not explicitly used here)
+      - "7882:7882/udp"       # UDP ICE
+    restart: unless-stopped

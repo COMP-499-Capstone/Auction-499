@@ -1,4 +1,5 @@
 // src/views/ListingPage.jsx
+import GoLiveButton from "../components/GoLiveButton";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import supabase from "../lib/supabaseClient";
@@ -27,7 +28,14 @@ import {
 export default function ListingPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const roomId = `auction-${id}`;
 
+function copyViewerLink() {
+  const url = `${window.location.origin}/watch/${roomId}`;
+  navigator.clipboard.writeText(url)
+    .then(() => alert("Viewer link copied!"))
+    .catch(() => window.prompt("Copy viewer link:", url));
+}
   const [auction, setAuction] = useState(null);
   const [images, setImages] = useState([]); // array of URLs
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -408,7 +416,36 @@ export default function ListingPage() {
                   </p>
                 )}
               </div>
+  {/* Live Stream (Seller only) */}
+  {isSeller && (
+    <div className="border rounded-xl p-5 bg-gray-50 shadow-sm space-y-3">
+      <div className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+        <Gavel className="w-4 h-4 text-gray-500" />
+        Live Stream Controls
+      </div>
 
+      <p className="text-xs text-gray-600">
+        Start your auction stream for this listing. Share the viewer link with bidders.
+      </p>
+
+      <div className="flex gap-2">
+        {/* Uses your existing GoLiveButton component */}
+        <GoLiveButton className="flex-1 bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm font-medium" />
+        <button
+          type="button"
+          onClick={copyViewerLink}
+          className="px-3 py-2 border rounded-md bg-white hover:bg-blue-50 text-blue-600 text-sm font-medium"
+          title={`Copy viewer link: /watch/${roomId}`}
+        >
+          Copy Viewer Link
+        </button>
+      </div>
+
+      <div className="text-xs text-gray-500">
+        Room: <code className="bg-gray-100 rounded px-1 py-0.5">{roomId}</code>
+      </div>
+    </div>
+  )}
               {/* Watchers */}
               <div className="border rounded-xl p-5 bg-gray-50 shadow-sm text-sm">
                 <div className="flex items-center gap-2">

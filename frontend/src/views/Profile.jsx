@@ -14,11 +14,12 @@ import {
   getAuctionInfo,
   getBidPostInfo,
   setStripeId,
+
 } from "../controllers/profileController";
 import { getWatchedAuctions } from "../controllers/watchController";
 import ToggleGroup from "./ToggleGroup";
 import "../styles/Profile.css";
-
+const API_BASE =  "https://api.auctionflow.it.com";
 export default function Profile() {
   const [profile, setProfile] = useState({
     username: "",
@@ -67,7 +68,7 @@ export default function Profile() {
         if (profile.stripe_account_id) return;
         const user = await supabase.auth.getUser();
 
-        const res = await fetch("http://localhost:3000/stripe/create-connected-account", {
+        const res = await fetch(`${API_BASE}/stripe/create-connected-account`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: user.data.user.email }),
