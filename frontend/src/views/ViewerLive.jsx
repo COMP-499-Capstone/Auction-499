@@ -16,7 +16,7 @@ export default function ViewerLive() {
     []
   );
 
-  const fallbackUrl = import.meta.env.VITE_LIVEKIT_URL || "ws://localhost:7880";
+  const fallbackUrl = import.meta.env.VITE_LIVEKIT_URL || "wss://live.auctionflow.it.com";
 
   React.useEffect(() => {
     let cancelled = false;
