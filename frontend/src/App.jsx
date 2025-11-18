@@ -29,6 +29,7 @@ export default function App() {
         <Route path="/homepage/:id" element={<Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
         <Route path="/live" element={<LiveLobby />} />
+        <Route path="/live/:roomName" element={<ViewerLive />} />
         <Route path="/host/:roomId" element={<HostLive />} />
         <Route path="/watch/:roomId" element={<ViewerLive />} />
       </Routes>
