@@ -81,8 +81,6 @@ router.post("/create-checkout-session", async (req, res) => {
           results.push({ id, status: "error", message: err.message });
         }
       }
-
-      console.log("status:", session.payment_status);
   
       res.json({ results });
     } catch (err) {
