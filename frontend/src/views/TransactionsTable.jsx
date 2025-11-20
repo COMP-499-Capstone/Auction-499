@@ -52,6 +52,7 @@ export default function TransactionsTable({profileId}) {
       
           try {
             const checkoutIds = await getCheckoutIds(profileId);
+            console.log("Fetched checkout IDs:", checkoutIds);
             setCheckoutId(checkoutIds);
       
             if (checkoutIds.length > 0) {
@@ -76,7 +77,6 @@ export default function TransactionsTable({profileId}) {
         fetchAndVerify();
       }, [profileId]);
 
-    // still need to make endpoint and configure stripe (still need db call to update transaction with stripe checkout )
     const handlePay = async (transaction) => {
         try {
             console.log("🧾 Transaction payload before fetch:", {
