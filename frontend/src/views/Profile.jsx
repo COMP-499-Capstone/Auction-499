@@ -192,7 +192,7 @@ export default function Profile() {
               <label>UserName</label>
               <input
                 type="text"
-                value={profile.username}
+                value={profile.username ? profile.username.charAt(0).toUpperCase() + profile.username.slice(1) : ""}
                 disabled={!isEditing}
                 onChange={(e) => setProfile((prev) => ({ ...prev, username: e.target.value }))}
               />
@@ -202,7 +202,7 @@ export default function Profile() {
               <label>Role</label>
               <input
                 type="text"
-                value={profile.role}
+                value={profile.role ? profile.role.charAt(0).toUpperCase() + profile.role.slice(1) : ""}
                 disabled={!isEditing}
                 onChange={(e) => setProfile((prev) => ({ ...prev, role: e.target.value }))}
               />
@@ -261,7 +261,7 @@ export default function Profile() {
         {view === "watching" && (
           <div className="profile-grid">
             {watching.length === 0 ? (
-              <div style={{ padding: 16, color: "#6b7280" }}>
+              <div style={{ padding: 16, color: "#000000ff" }}>
                 You aren’t watching anything yet.
               </div>
             ) : (

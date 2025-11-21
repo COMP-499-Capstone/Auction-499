@@ -38,6 +38,7 @@ export default function SellPage() {
     end_time: "", // set in effect below
     location: "", // ZIP or "City, ST"
     image_url: "",
+    category: "",            // NEW: category field
   });
 
   useEffect(() => {
@@ -95,27 +96,28 @@ export default function SellPage() {
     }
   }
 
-// Allow up to 10 images
-const onFileChange = (e) => {
-  const selected = Array.from(e.target.files ?? []);
-  if (!selected.length) return;
+  // Allow up to 10 images
+  const onFileChange = (e) => {
+    const selected = Array.from(e.target.files ?? []);
+    if (!selected.length) return;
 
-  setFiles((prev) => {
-    const remainingSlots = maxImages - prev.length;
-    const toAdd = selected.slice(0, remainingSlots);
-    const next = [...prev, ...toAdd];
+    setFiles((prev) => {
+      const remainingSlots = maxImages - prev.length;
+      const toAdd = selected.slice(0, remainingSlots);
+      const next = [...prev, ...toAdd];
 
-    if (selected.length > remainingSlots) {
-      alert(`You can upload up to ${maxImages} images. Extra files were ignored.`);
-    }
-    return next;
-  });
-};
+      if (selected.length > remainingSlots) {
+        alert(`You can upload up to ${maxImages} images. Extra files were ignored.`);
+      }
+      return next;
+    });
+  };
 
-//Remove image by index
-const removeFileAt = (index) => {
-  setFiles((prev) => prev.filter((_, i) => i !== index));
-};
+  // Remove image by index
+  const removeFileAt = (index) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const onSubmit = async (e) => {
     e.preventDefault();
 
@@ -127,6 +129,8 @@ const removeFileAt = (index) => {
 
     // Basic validation
     if (!form.title.trim()) return alert("Title is required.");
+    if (!form.category) return alert("Please choose a category.");   // NEW: require category
+
     const startPrice = Number(form.starting_price);
     if (!Number.isFinite(startPrice)) return alert("Starting price is required.");
     if (!form.end_time) return alert("End time is required.");
@@ -163,7 +167,7 @@ const removeFileAt = (index) => {
       }
 
       // Optional manual URL (treat as one more image)
-      if (form.image_url.trim()&& uploadedUrls.length < maxImages) {
+      if (form.image_url.trim() && uploadedUrls.length < maxImages) {
         uploadedUrls.push(form.image_url.trim());
       }
 
@@ -181,6 +185,7 @@ const removeFileAt = (index) => {
         end_time: endIso,
         status: "active",
         seller_id: session.user.id,
+        category: form.category || null,        // NEW: send category to DB
       };
 
       const auctionPayload = cleanLocation
@@ -329,6 +334,22 @@ const removeFileAt = (index) => {
             onChange={onChange}
             className="hp-search-input"
           />
+
+          {/* NEW: Category select */}
+          <select
+            name="category"
+            value={form.category}
+            onChange={onChange}
+            className="hp-dd-btn"
+            required
+          >
+            <option value="">Select category</option>
+            <option value="motors">Motors</option>
+            <option value="electronics">Electronics</option>
+            <option value="collectibles">Collectibles</option>
+            <option value="shoes">Sport & Apparel</option>
+            <option value="other">Other</option>
+          </select>
         </div>
 
         {/* File upload row */}

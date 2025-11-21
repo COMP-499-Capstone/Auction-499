@@ -1,15 +1,15 @@
-/* src/index.css — light baseline for the whole app */
+/* src/index.css — global styles */
 @import "tailwindcss";
 
 :root {
-  --hp-bg: #f5f6f8;
-  --hp-text: #111827;
+  /* DARK BLUE gradient for the whole page */
+  --hp-bg: linear-gradient(135deg, #0f172a, #1e293b, #020617);
+  --hp-text: #f9fafb;
 
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
-  /* remove the dark scheme + dark background from the Vite template */
   color-scheme: only light;
   color: var(--hp-text);
 }
@@ -23,11 +23,12 @@ body,
   min-height: 100%;
 }
 
+/* PAGE BACKGROUND = gradient */
 body {
   min-width: 320px;
   min-height: 100vh;
-  display: block; /* don't force flex on the entire app */
-  background: var(--hp-bg); /* light page background */
+  display: block;
+  background: var(--hp-bg);
   color: var(--hp-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -35,9 +36,10 @@ body {
   font-synthesis: none;
 }
 
+/* root should NOT repaint the background */
 #root {
   min-height: 100vh;
-  background: var(--hp-bg); /* ensure gutters match the page */
+  background: transparent;
 }
 
 /* Resets */

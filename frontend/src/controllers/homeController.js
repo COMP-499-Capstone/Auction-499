@@ -12,17 +12,20 @@ export async function fetchFeaturedAuctions(opts = {}) {
   let aq = supabase
     .from("auctions")
     .select(
-      "id, title, description, auction_type, starting_price, reserve_price, start_time, end_time, status, seller_id, location"
+      "id, title, description, auction_type, starting_price, reserve_price, start_time, end_time, status, seller_id, location, category"  
     )
     .in("status", ["active", "upcoming"])
     .gte("end_time", new Date().toISOString())
     .limit(limit);
 
   // Basic search (title / description / location)
-  if (query.trim()) {
-    const term = `%${query.trim()}%`;
-    aq = aq.or(`title.ilike.${term},description.ilike.${term},location.ilike.${term}`);
-  }
+if (query.trim()) {
+  const term = `%${query.trim()}%`;
+  aq = aq.or(
+    `title.ilike.${term},description.ilike.${term},location.ilike.${term},category.ilike.${term}`
+  );
+}
+
 
   // Sorting
   if (sort === "endingSoon") aq = aq.order("end_time", { ascending: true });

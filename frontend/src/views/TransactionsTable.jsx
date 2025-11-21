@@ -1,4 +1,5 @@
 import React from "react";
+import { formatCurrency } from "../utils/currency";
 import { useParams } from "react-router-dom";
 import { loadStripe } from "@stripe/stripe-js";
 import { useState, useEffect } from"react";
@@ -154,7 +155,7 @@ const PaymentsTable = ({ data, type, onPay }) => (
                             ? tx.buyer?.username
                             : tx.seller?.username}
                         </td>
-                        <td>${tx.final_price.toFixed(2)}</td>
+                        <td>{formatCurrency(tx.final_price)}</td>
                         <td>{tx.paid ? "Paid ✅" : "Pending ⏳"}</td>
                         <td>{new Date(tx.created_at).toLocaleString()}</td>
                         {type === "outgoing" && (
