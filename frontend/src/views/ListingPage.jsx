@@ -1,4 +1,5 @@
 import GoLiveButton from "../components/GoLiveButton";
+import { formatCurrency } from "../utils/currency";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import supabase from "../lib/supabaseClient";
@@ -376,9 +377,10 @@ export default function ListingPage() {
                   </div>
                   <div className="text-3xl font-bold text-blue-700">
                     {currentBid
-                      ? `$${currentBid.amount}`
-                      : `$${auction.starting_price ?? 0}`}
+                      ? formatCurrency(currentBid.amount)
+                      : formatCurrency(auction.starting_price ?? 0)}
                   </div>
+
                   {currentBid && (
                     <div className="text-xs text-gray-500 mt-1">
                       Highest bidder: {currentBid.username}
@@ -443,14 +445,36 @@ export default function ListingPage() {
                   <div className="flex gap-2">
                     {/* Uses your existing GoLiveButton component */}
                     <GoLiveButton className="flex-1 bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm font-medium" />
-                    <button
-                      type="button"
-                      onClick={copyViewerLink}
-                      className="px-3 py-2 border rounded-md bg-white hover:bg-blue-50 text-blue-600 text-sm font-medium"
-                      title={`Copy viewer link: /watch/${roomId}`}
-                    >
-                      Copy Viewer Link
-                    </button>
+                  <button
+                    type="button"
+                    onClick={copyViewerLink}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "0.5rem 0.75rem",
+                      borderRadius: "9999px",        // pill shape to match Start Live Stream
+                      backgroundColor: "#ffffff",
+                      border: "1px solid #2563eb",   // blue-600 border
+                      color: "#2563eb",
+                      fontSize: "0.875rem",
+                      fontWeight: 600,
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                      transition: "background-color .15s ease, color .15s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.backgroundColor = "#eff6ff";  // blue-50
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.backgroundColor = "#ffffff";
+                    }}
+                    title={`Copy viewer link: /watch/${roomId}`}
+                  >
+                    Copy Viewer Link
+                  </button>
+
                   </div>
 
                   <div className="text-xs text-gray-500">

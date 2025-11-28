@@ -10,6 +10,32 @@ import "../styles/HomePage.css";
 
 export default function HomePage() {
   const nav = useNavigate();
+const MINI_SLIDES = [
+  {
+    title: "Motors",
+    subtitle: "Parts, wheels, tools, and accessories",
+    query: "motors",
+    color: "linear-gradient(135deg, #8a6fa1, #6a4f73)",
+  },
+  {
+    title: "Electronics",
+    subtitle: "Phones, headphones, consoles",
+    query: "electronics",
+    color: "linear-gradient(135deg, #5f7fd6, #3d5a99)",
+  },
+  {
+    title: "Collectibles",
+    subtitle: "Cards, coins, rare finds",
+    query: "collectibles",
+    color: "linear-gradient(135deg, #cd6d48, #a95336)",
+  },
+  {
+    title: "Sport & Apparel",
+    subtitle: "Gear, shoes, and fitness items",
+    query: "shoes",
+    color: "linear-gradient(135deg, #4e9272, #2d5f4a)",
+  },
+];
 
   // filters
   const [query, setQuery] = useState("");
@@ -238,77 +264,96 @@ export default function HomePage() {
     setUserMenuOpen(false);
   };
 
+  function MiniSlider({ onSelect, username }) {
+  const [index, setIndex] = React.useState(0);
+
+  // Build slides: first is welcome, then the category slides
+  const slides = React.useMemo(() => {
+    const safeName = username
+      ? String(username).charAt(0).toUpperCase() +
+        String(username).slice(1).toLowerCase()
+      : "there";
+
+    return [
+      {
+        title: `Welcome back, ${safeName}`,
+        subtitle: "Ready to bid or create a listing?",
+        query: "",                // no filter change on click
+        color: "#111827",         // dark background for welcome
+      },
+      ...MINI_SLIDES,             // your Motors / Electronics / etc.
+    ];
+  }, [username]);
+
+  React.useEffect(() => {
+    const id = setInterval(() => {
+      setIndex((i) => (i + 1) % slides.length);
+    }, 4000); // 4 seconds
+    return () => clearInterval(id);
+  }, [slides.length]);
+
+  const s = slides[index];
+
+  const handleClick = () => {
+    // For the welcome slide, do nothing on click
+    if (!s.query) return;
+    onSelect(s.query);
+  };
+
+  return (
+    <div
+      style={{
+        background: s.color,
+        color: "white",
+        padding: "20px 24px",
+        borderRadius: 16,
+        margin: "0 auto 20px",
+        maxWidth: 700,
+        cursor: s.query ? "pointer" : "default",
+        transition: "0.3s",
+      }}
+      onClick={handleClick}
+    >
+      <div style={{ fontSize: 22, fontWeight: 700 }}>{s.title}</div>
+      <div style={{ fontSize: 14, opacity: 0.85 }}>{s.subtitle}</div>
+    </div>
+  );
+}
+
   return (
     <div className="home-shell">
       <div className="home-page" style={{ paddingTop: 8 }}>
         {/* Title */}
-        <h1
-          className="hp-title"
-          style={{
-            fontSize: 44,
-            fontWeight: 800,
-            textAlign: "center",
-            marginTop: 8,
-            marginBottom: 20,
-            letterSpacing: "-0.5px",
-            color: "#0f172a",
-          }}
-        >
-          Auction
-        </h1>
-
-        {/* Minimal welcome banner (no CTA buttons) */}
-        {session?.user && (
-          <div
+        <div style={{ textAlign: "center", marginBottom: 25 }}>
+          <h1
             style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "flex-start",
-              gap: 14,
-              background: "linear-gradient(135deg, #ffffff, #f8fafc)",
-              borderRadius: 14,
-              padding: "14px 18px",
-              margin: "0 auto 20px",
-              boxShadow: "0 6px 20px rgba(0,0,0,0.05)",
-              maxWidth: 700,
-              transition: "transform 0.2s ease, box-shadow 0.2s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = "translateY(-2px)";
-              e.currentTarget.style.boxShadow = "0 10px 30px rgba(0,0,0,0.08)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "translateY(0)";
-              e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.05)";
+              fontSize: 48,
+              fontWeight: 800,
+              letterSpacing: "-0.8px",
+              margin: 0,
+              color: "#e4e5e6"
             }}
           >
-            <div
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: "50%",
-                background: "#2563eb",
-                display: "grid",
-                placeItems: "center",
-                fontWeight: 700,
-                color: "#fff",
-                fontSize: 18,
-                flexShrink: 0,
-              }}
-              title="Profile"
-            >
-              {username ? String(username).slice(0, 1).toUpperCase() : "U"}
-            </div>
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 600, color: "#111827" }}>
-                Welcome back, {username}
-              </div>
-              <div style={{ fontSize: 13, color: "#6b7280" }}>
-                Ready to bid or create a listing?
-              </div>
-            </div>
-          </div>
-        )}
+            Auction
+          </h1>
+          <div
+            style={{
+              width: 120,
+              height: 3,
+              background: "linear-gradient(90deg, #00416a, #e4e5e6, #00416a)",
+              margin: "10px auto 0",
+              borderRadius: 2
+            }}
+          ></div>
+        </div>
+
+
+
+
+        {/* Minimal welcome banner (no CTA buttons) */}
+        <MiniSlider onSelect={(q) => setQuery(q)} username={username} />
+
+
 
         <header className="hp-topbar" style={{ marginTop: 8 }}>
           <form
@@ -436,7 +481,7 @@ export default function HomePage() {
           </div>
         </header>
 
-        <section className="hp-section">
+                <section className="hp-section">
           <h2 className="hp-h2" style={{ marginTop: 12 }}>Featured</h2>
 
           {loading && (
@@ -468,11 +513,9 @@ export default function HomePage() {
           {!loading && !error && display.length > 0 && (
             <div className="hp-grid">
               {display.map((a) => {
-                // Adapt data for BidAuctionCard
                 const adapted = {
                   id: a.id,
                   title: a.title,
-                  // BidAuctionCard fetches its own thumbnail & status
                   starting_price: a.starting_price ?? a.currentBid ?? 0,
                   reserve_price: a.reserve_price ?? 0,
                   end_time: a.end_time
@@ -481,7 +524,7 @@ export default function HomePage() {
                     ? new Date(a.endsAt).toISOString()
                     : null,
                   status: a.status ?? "active",
-                  location: a.location ?? "", // expected ZIP for nearby filter
+                  location: a.location ?? "",
                 };
                 return (
                   <BidAuctionCard
@@ -496,6 +539,11 @@ export default function HomePage() {
           )}
         </section>
 
+        {/* Footer with names */}
+        <footer className="hp-footer">
+          <span>Built by: Jason Rincon, Juan Ramirez, Steve Coyotl, and Heriberto Y. Hernandez</span>
+        </footer>
+
         <button
           className="hp-fab"
           onClick={() => nav("/sell")}
@@ -509,6 +557,7 @@ export default function HomePage() {
     </div>
   );
 }
+
 
 /* Custom dropdown (Filter/Sort) */
 function Dropdown({ label, value, onChange, options }) {

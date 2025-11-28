@@ -24,6 +24,7 @@ export default function BidAuctionCard({
   onUnwatch,
   onUnwatchRevert,
 }) {
+  const [moneyBurst, setMoneyBurst] = useState(false);
   const endMs = auction?.end_time ? new Date(auction.end_time).getTime() : 0;
   const endsSoon = endMs > 0 && endMs - Date.now() <= 60 * 60 * 1000;
 
@@ -222,12 +223,18 @@ export default function BidAuctionCard({
     try {
       const n = Number(amount);
       if (!Number.isFinite(n) || n <= 0) return;
+
       await raiseBid(auction.id, n, profileId);
       setNewBid("");
+
+      // money animation
+      setMoneyBurst(true);
+      setTimeout(() => setMoneyBurst(false), 600); // match CSS duration
     } catch (err) {
       console.error("Failed to raise bid:", err.message);
     }
   };
+
 
   // Derived flags
   const iAmHighest = !!profileId && highestBidderId === profileId;
@@ -421,26 +428,45 @@ export default function BidAuctionCard({
           />
         )}
 
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            if (canBid) Bid(newBid);
-          }}
-          disabled={!canBid}
-          title={
-            status === "ended"
-              ? "Auction ended"
+                <div className="hp-raise-wrap">
+          {moneyBurst && (
+            <div className="hp-money-burst">
+              <span>$</span>
+              <span>$</span>
+              <span>$</span>
+            </div>
+          )}
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (canBid) Bid(newBid);
+            }}
+            disabled={!canBid}
+            title={
+              status === "ended"
+                ? "Auction ended"
+                : signedOut
+                ? "Sign in to bid"
+                : iAmSeller
+                ? "You can’t bid on your own auction"
+                : iAmHighest
+                ? "You already have the highest bid"
+                : "Place a higher bid"
+            }
+          >
+            {status === "ended"
+              ? "Sold"
               : signedOut
               ? "Sign in to bid"
               : iAmSeller
-              ? "You can’t bid on your own auction"
+              ? "Owner"
               : iAmHighest
-              ? "You already have the highest bid"
-              : "Place a higher bid"
-          }
-        >
-          {status === "ended" ? "Sold" : signedOut ? "Sign in to bid" : iAmSeller ? "Owner" : iAmHighest ? "Raise" : "Raise"}
-        </button>
+              ? "Raise"
+              : "Raise"}
+          </button>
+        </div>
+
       </div>
     </article>
   );

@@ -6,9 +6,11 @@
   align-items: center;
   gap: 1px;
   padding: 20px;
-  background: #f9fafb;
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
   width: 100%;
   max-width: none;
   margin: 0 auto;
@@ -104,25 +106,32 @@
   cursor: not-allowed;
 }
 
+/* OUTER WRAPPER – let background come from body gradient */
 .profile-shell {
   position: relative;
-  background: var(--hp-bg);
   min-height: 100vh;
+  padding: 32px 0;
+  
+  /* no background here so gradient shows */
 }
 
+/* inner content stays transparent on top of gradient */
 .profile-page {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px 16px 96px;
   color: var(--hp-text);
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  
 }
 
 .profile-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 18px;
+
 }
+
 @media (max-width: 640px) {
   .profile-grid {
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));

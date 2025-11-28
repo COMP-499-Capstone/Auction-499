@@ -230,15 +230,20 @@ export default function ProfileAuctionCard({
             disabled={status === "ended"}
             aria-label="Sell"
             style={{
-              background: status === "ended" ? "#a7f3d0" : "#16a34a",
-              color: status === "ended" ? "#065f46" : "#fff",
-              fontWeight: 700,
+              background: status === "ended"
+              ? "rgba(59,130,246,0.25)"    // soft blue faded
+              : "#aba79e",
+              color: "#ffffff",
+              fontWeight: 600,
               border: "none",
-              borderRadius: 10,
-              padding: "12px 12px",
+              borderRadius: 12,
+              padding: "10px 18px",
               cursor: status === "ended" ? "not-allowed" : "pointer",
+              backdropFilter: "blur(6px)",
+              WebkitBackdropFilter: "blur(6px)",
+              boxShadow: "0 4px 10px rgba(0,0,0,0.15)",
+              transition: "0.2s",
             }}
-            title={status === "ended" ? "Auction already sold" : "Close auction and create transaction"}
           >
             {status === "ended" ? "Sold" : "Sell"}
           </button>
@@ -248,13 +253,17 @@ export default function ProfileAuctionCard({
             onClick={handleEdit}
             aria-label="Edit"
             style={{
-              background: "#e5e7eb",
-              color: "#111827",
-              fontWeight: 700,
+              background: "rgba(255,255,255,0.6)",   // frosted glass white
+              color: "#1f2937",
+              fontWeight: 600,
               border: "none",
-              borderRadius: 10,
-              padding: "12px 12px",
+              borderRadius: 12,
+              padding: "10px 18px",
               cursor: "pointer",
+              backdropFilter: "blur(6px)",
+              WebkitBackdropFilter: "blur(6px)",
+              boxShadow: "0 4px 10px rgba(0,0,0,0.12)",
+              transition: "0.2s",
             }}
           >
             Edit
@@ -265,17 +274,22 @@ export default function ProfileAuctionCard({
             onClick={handleDelete}
             aria-label="Delete"
             style={{
-              background: "#ef4444",
+             background: "rgba(75,85,99,0.65)",    // soft dark grey
               color: "#fff",
-              fontWeight: 700,
+              fontWeight: 600,
               border: "none",
-              borderRadius: 10,
-              padding: "12px 12px",
+              borderRadius: 12,
+              padding: "10px 18px",
               cursor: "pointer",
+              backdropFilter: "blur(6px)",
+              WebkitBackdropFilter: "blur(6px)",
+              boxShadow: "0 4px 10px rgba(0,0,0,0.15)",
+              transition: "0.2s",
             }}
           >
             Delete
           </button>
+
         </div>
       </div>
     </article>
