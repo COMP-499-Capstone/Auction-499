@@ -15,7 +15,7 @@ export default function TransactionsTable({profileId}) {
     const [outgoingPayments, setOutgoingPayments] = useState([]);
     const [checkoutId, setCheckoutId] = useState([]);
     const { id: paramId } = useParams();
-    const API_BASE ="https://api.auctionflow.it.com" ;
+    const API_BASE ="//localhost:3000" ;
 
     //used to get all incoming payments
     useEffect(() => {
