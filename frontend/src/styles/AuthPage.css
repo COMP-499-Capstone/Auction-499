@@ -1,0 +1,149 @@
+/* AuthPage.css — light, clean, matches HomePage look */
+
+:root {
+  --hp-bg: #f5f6f8;
+  --hp-text: #111827;
+  --hp-muted: #6b7280;
+  --hp-border: #e5e7eb;
+  --hp-primary: #0064d2;
+}
+
+/* page frame */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: 32px 16px 48px;
+  color: var(--hp-text);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+/* title — same style as HomePage .hp-title */
+.auth-title {
+  font-size: 56px;
+  font-weight: 800;
+  line-height: 1.25;
+  margin: 0 0 8px 0;
+  color: var(--hp-text);
+  letter-spacing: -0.5px;
+  font-family: "Playfair Display", serif;
+  text-align: center;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* container holding the card */
+.login-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 72vh;
+}
+
+/* auth card */
+.login-form {
+  width: 100%;
+  max-width: 420px;
+  display: grid;
+  gap: 14px;
+  padding: 28px;
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--hp-border);
+  border-radius: 16px;
+  box-shadow: 0 8px 28px rgba(17, 24, 39, 0.08);
+}
+
+/* inputs */
+.login-form input {
+  height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--hp-border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.774);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--hp-text);
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.login-form input::placeholder {
+  color: #9ca3af;
+}
+.login-form input:focus {
+  border-color: #c7d2fe;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+}
+
+/* fix Chrome autofill */
+.login-form input:-webkit-autofill,
+.login-form input:-webkit-autofill:hover,
+.login-form input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px #fff inset;
+  -webkit-text-fill-color: var(--hp-text);
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* buttons */
+.login-form button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  padding: 0 14px;
+  user-select: none;
+  transition: transform 0.05s ease, box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+
+/* primary submit */
+.login-form button[type="submit"] {
+  background: var(--hp-primary);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(0, 100, 210, 0.25);
+}
+.login-form button[type="submit"]:hover {
+  background: #0056b3;
+}
+.login-form button[type="submit"]:active {
+  transform: translateY(1px);
+}
+
+/* secondary */
+.login-form .signup,
+.login-form .secondary {
+  background: #f3f4f6;
+  color: var(--hp-primary);
+  font-weight: 700;
+}
+.login-form .signup:hover,
+.login-form .secondary:hover {
+  background: #e5e7eb;
+}
+
+/* error */
+.login-error {
+  margin-top: 4px;
+  color: #b91c1c;
+  font-size: 14px;
+  text-align: center;
+}
+
+/* helper text */
+.login-form .helper {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--hp-muted);
+  text-align: center;
+}
+.login-form .helper a {
+  color: var(--hp-primary);
+  font-weight: 600;
+}

@@ -1,0 +1,161 @@
+/* Profile.css */
+.profile-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 1px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  width: 100%;
+  max-width: none;
+  margin: 0 auto;
+}
+
+.profile-pic {
+  position: relative;
+  display: flex;
+  flex-direction: center;
+  align-items: center;
+  gap: 8px;
+}
+
+.profile-pic img,
+.profile-pic svg {
+  border-radius: 50%;
+  object-fit: cover;
+  width: 130px;
+  height: 130px;
+  border: 2px solid #e5e7eb;
+}
+
+.profile-pic input[type="file"] {
+  margin-top: 8px;
+  cursor: pointer;
+}
+
+.profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 200px;
+}
+
+.profile-info input[type="text"] {
+  padding: 6px 0;
+  font-size: 17px;
+  text-align: center;
+  border: none;
+  border-bottom: 2px solid #d1d5db;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.profile-info input[type="text"]:focus {
+  border-color: #3b82f6;
+  box-shadow: none;
+}
+
+.profile-info input[type="text"]:disabled {
+  border: none; 
+  color: #374151; 
+  text-align: center;             
+  background: transparent;
+  cursor: default;
+}
+
+.profile-info button {
+  padding: 8px 16px;
+  align-self: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  background-color: #3b82f6;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.profile-field {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.profile-field label {
+  font-weight: 700;
+  text-decoration: underline;
+  width: 100px; /* keeps labels aligned */
+  text-align: center;
+  color: #374151;
+}
+
+.profile-info button:hover:not(:disabled) {
+  background-color: #2563eb;
+}
+
+.profile-info button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* OUTER WRAPPER – let background come from body gradient */
+.profile-shell {
+  position: relative;
+  min-height: 100vh;
+  padding: 32px 0;
+  
+  /* no background here so gradient shows */
+}
+
+/* inner content stays transparent on top of gradient */
+.profile-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px 16px 96px;
+  color: var(--hp-text);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 18px;
+
+}
+
+@media (max-width: 640px) {
+  .profile-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .profile-header {
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .profile-info {
+    width: 100%;
+    align-items: center;
+  }
+
+  .profile-info input[type="text"] {
+    width: 100%;
+  }
+
+  .profile-info button {
+    width: 100%;
+  }
+}

@@ -1,0 +1,64 @@
+/* src/index.css — global styles */
+@import "tailwindcss";
+
+:root {
+  /*--hp-bg: linear-gradient(135deg, #f1ede6d0, #F2F2F2, #DBDBDB, #EAEAEA);*/
+  --hp-bg: linear-gradient(135deg, #00416a 5%, #e4e5e6 50%, #00416a 100%);
+  --hp-text: #000000;
+
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: only light;
+  color: var(--hp-text);
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  min-height: 100%;
+}
+
+/* PAGE BACKGROUND = gradient */
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  display: block;
+  background: var(--hp-bg);
+  color: var(--hp-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
+}
+
+/* root should NOT repaint the background */
+#root {
+  min-height: 100vh;
+  background: transparent;
+}
+
+/* Resets */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+}
+a {
+  text-decoration: none;
+  color: inherit;
+}
+button {
+  all: unset;
+  cursor: pointer;
+}
+* {
+  box-sizing: border-box;
+}
